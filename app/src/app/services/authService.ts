@@ -6,6 +6,10 @@ export interface User {
   companyId: string;
   role: string;
   createdAt: string;
+  name?: string;          // ainda não preenchido pelo backend, mas existirá futuramente
+  company?: {              // idem
+    name: string;
+  };
 }
 
 export interface AuthResponse {
@@ -38,9 +42,7 @@ export async function getProfile(): Promise<User> {
 export async function logout(): Promise<void> {
   const refreshToken = localStorage.getItem('refreshToken');
   if (refreshToken) {
-    try {
-      await api.post('/auth/logout', { refreshToken });
-    } catch {}
+    try { await api.post('/auth/logout', { refreshToken }); } catch {}
   }
   clearTokens();
 }

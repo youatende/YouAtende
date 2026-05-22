@@ -3,9 +3,16 @@ import api from './api';
 export interface Company {
   id: string;
   name: string;
+  cnpj?: string;
   status: string;
+  planId?: string;
+  recurrence?: string;
+  dueDay?: number;
   createdAt: string;
   adminEmail?: string;
+  adminName?: string;
+  adminCpf?: string;
+  adminPhone?: string;
 }
 
 export async function listCompanies(): Promise<Company[]> {
@@ -15,9 +22,16 @@ export async function listCompanies(): Promise<Company[]> {
 
 export async function createCompany(payload: {
   companyName: string;
+  cnpj: string;
   adminEmail: string;
   adminPassword: string;
-}): Promise<{ companyId: string; userId: string }> {
+  adminName: string;
+  adminCpf: string;
+  adminPhone: string;
+  planId: string;
+  recurrence: string;
+  dueDay: number;
+}): Promise<{ companyId: string; userId: string; message: string }> {
   const { data } = await api.post('/companies', payload);
   return data;
 }

@@ -11,9 +11,26 @@ export interface WhatsAppSession {
   jid?: string;
   created_at: string;
   updated_at: string;
+  number?: string;
+  token?: string;
+  isDefault?: boolean;
+  farewellMessage?: string;
+  outOfHoursMessage?: string;
 }
 
-// Aliases para compatibilidade com Configuracoes.tsx
+/** Tipo antigo usado apenas para compatibilidade interna */
+export interface WhatsApp {
+  id: string;
+  name: string;
+  number: string;
+  status: string;
+  updatedAt: string;
+  isDefault: boolean;
+  token: string;
+  farewellMessage: string;
+  outOfHoursMessage: string;
+}
+
 export const listConnections = async (): Promise<WhatsAppSession[]> => {
   const { data } = await api.get<WhatsAppSession[]>("/whatsapp-sessions");
   return Array.isArray(data) ? data : (data as any).sessions ?? [];
@@ -24,9 +41,8 @@ export const createConnection = async (name: string): Promise<{ id: string }> =>
   return data;
 };
 
-export const updateConnection = async (id: string, data: Record<string, any>): Promise<any> => {
-  // Ainda não implementado no backend – placeholder
-  console.warn("updateConnection not implemented");
+export const updateConnection = async (id: string, payload: Partial<WhatsAppSession>): Promise<any> => {
+  // futura implementação
   return {};
 };
 
@@ -35,11 +51,5 @@ export const deleteConnection = async (id: string): Promise<void> => {
 };
 
 export const restartConnection = async (id: string): Promise<void> => {
-  // Ainda não implementado – placeholder
-  console.warn("restartConnection not implemented");
-};
-
-export const getSessionQRCode = async (sessionId: string): Promise<{ qrcode: string }> => {
-  const { data } = await api.get(`/whatsapp-sessions/${sessionId}/qrcode`);
-  return data;
+  // placeholder
 };

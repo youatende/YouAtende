@@ -1,4 +1,4 @@
-import { createBrowserRouter, Outlet } from "react-router";
+import { createBrowserRouter, Outlet, Navigate } from "react-router";
 import { useEffect } from "react";
 import { useAuth } from "./context/AuthContext";
 import { Layout } from "./components/Layout";
@@ -9,6 +9,13 @@ import { Relatorios } from "./components/pages/Relatorios";
 import { Campanhas } from "./components/pages/Campanhas";
 import { Configuracoes } from "./components/pages/Configuracoes";
 import { Empresas } from "./components/pages/Empresas";
+
+// Componente que decide a rota índice com base no role
+function IndexRoute() {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  return user.role === "super_admin" ? <Navigate to="/empresas" replace /> : <Conversas />;
+}
 
 function ProtectedLayout() {
   const { token } = useAuth();
@@ -31,7 +38,7 @@ export const router = createBrowserRouter([
       {
         element: <Layout />,
         children: [
-          { index: true, Component: Conversas },
+          { index: true, element: <IndexRoute /> },
           { path: "contatos", Component: Contatos },
           { path: "relatorios", Component: Relatorios },
           { path: "campanhas", Component: Campanhas },

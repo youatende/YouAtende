@@ -13,8 +13,8 @@ import { useAuth } from "../../context/AuthContext";
 import {
   listConnections, createConnection, updateConnection,
   deleteConnection, restartConnection,
-  WhatsApp as WaApi,
 } from "../../services/whatsappService";
+import { TeamManagement } from "./TeamManagement";
 import logoImg from "../../../assets/7dee4d2422fa054a783195ac473a80d49248e146.png";
 
 const menuItems = [
@@ -29,7 +29,7 @@ const menuItems = [
 ];
 
 interface WaChannel {
-  id: number;
+  id: string;
   name: string;
   phone: string;
   status: "connected" | "disconnected" | "pending";
@@ -46,21 +46,21 @@ interface WaChannel {
 
 const mockChannels: WaChannel[] = [
   {
-    id: 1, name: "API Oficial – Suporte",
+    id: "1", name: "API Oficial – Suporte",
     phone: "+55 (80) 0501-3000", status: "connected",
     lastUpdate: "01/04/2026 09:29", default: true, typing: true, recording: true,
     token: "sk_live_01KM694959JV84T4W9ZVkBGVNC",
     msgInactivity: "", msgConclusion: "", msgOutOfHours: "", integration: "",
   },
   {
-    id: 2, name: "API Oficial – Cobranças",
+    id: "2", name: "API Oficial – Cobranças",
     phone: "+55 (11) 4002-8922", status: "connected",
     lastUpdate: "31/03/2026 15:42", default: false, typing: false, recording: false,
     token: "sk_live_92BXK341PLMQ87TZ3HNWsECKY",
     msgInactivity: "", msgConclusion: "", msgOutOfHours: "", integration: "",
   },
   {
-    id: 3, name: "API Oficial – Vendas",
+    id: "3", name: "API Oficial – Vendas",
     phone: "+55 (21) 3030-4040", status: "disconnected",
     lastUpdate: "28/03/2026 08:15", default: false, typing: true, recording: false,
     token: "sk_live_77GHJ120RSTY56OP9QWA",
@@ -210,7 +210,7 @@ function WaModal({ channel, onClose, onSave, t, isDark }: {
 }) {
   const isNew = !channel;
   const empty: WaChannel = {
-    id: Date.now(), name: "", phone: "", status: "pending",
+    id: String(Date.now()), name: "", phone: "", status: "pending",
     lastUpdate: "", default: false, typing: false, recording: false,
     token: "", msgInactivity: "", msgConclusion: "", msgOutOfHours: "", integration: "",
   };
@@ -390,7 +390,7 @@ function WaModal({ channel, onClose, onSave, t, isDark }: {
 /* ─── WhatsApp Section ──────────────────────────────────────────────────── */
 
 /* ── Adapter: API → UI ── */
-function adaptConnection(w: WaApi): WaChannel {
+function adaptConnection(w: WhatsAppSession): WaChannel {
   const statusMap: Record<string, "connected"|"disconnected"|"pending"> = {
     CONNECTED: "connected", DISCONNECTED: "disconnected", TIMEOUT: "disconnected",
     qrcode: "pending", PAIRING: "pending", OPENING: "pending",
@@ -411,7 +411,7 @@ function adaptConnection(w: WaApi): WaChannel {
     integration:  "",
   };
 }
-function adaptToApi(ch: WaChannel): Partial<WaApi> {
+function adaptToApi(ch: WaChannel): Partial<WhatsAppSession> {
   return {
     name:             ch.name,
     number:           ch.phone,
@@ -452,7 +452,6 @@ function WhatsAppSection({ t, isDark }: { t: any; isDark: boolean }) {
 
   const handleSave = async (ch: WaChannel) => {
     closeModal();
-    // Optimistic
     setChannels(prev => {
       const exists = prev.find(c => c.id === ch.id);
       return exists ? prev.map(c => c.id===ch.id?ch:c)
@@ -462,18 +461,18 @@ function WhatsAppSection({ t, isDark }: { t: any; isDark: boolean }) {
     try {
       const exists = channels.find(c => c.id === ch.id);
       if (exists) await updateConnection(ch.id, adaptToApi(ch));
-      else        await createConnection(adaptToApi(ch) as WaApi);
+      else        await createConnection(ch.name);
       loadChannels();
     } catch { loadChannels(); }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     setChannels(prev => prev.filter(c => c.id !== id));
     if (isDemo) return;
     try { await deleteConnection(id); } catch { loadChannels(); }
   };
 
-  const handleToggle = async (id: number) => {
+  const handleToggle = async (id: string) => {
     setChannels(prev =>
       prev.map(c => c.id===id
         ? { ...c, status: c.status==="connected" ? "disconnected" : "connected" }
@@ -681,7 +680,6 @@ function MetaPartnerModal({ onClose, isDark }: { onClose: () => void; isDark: bo
         backdropFilter: "blur(8px)",
       }}
     >
-      {/* Card ocupa toda a área menos a margem de segurança */}
       <motion.div
         initial={{ opacity: 0, scale: 0.97, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -698,12 +696,10 @@ function MetaPartnerModal({ onClose, isDark }: { onClose: () => void; isDark: bo
             : "0 20px 60px rgba(0,0,0,0.13), 0 0 0 1px rgba(124,58,237,0.07)",
         }}
       >
-        {/* Accent top line */}
         <div className="absolute top-0 left-0 right-0 h-px flex-shrink-0" style={{
           background: "linear-gradient(90deg, transparent 5%, rgba(124,58,237,0.6) 35%, rgba(37,211,102,0.45) 65%, transparent 95%)",
         }} />
 
-        {/* Ambient blobs (subtle, fitted to card) */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {[
             { w: 320, h: 320, top: -80,  left: -60,  color: "124,58,237",  dur: 9,  del: 0 },
@@ -725,10 +721,7 @@ function MetaPartnerModal({ onClose, isDark }: { onClose: () => void; isDark: bo
           ))}
         </div>
 
-        {/* ── INNER CONTENT ── */}
         <div className="relative z-10 flex flex-col h-full px-8 pt-6 pb-6 gap-0 overflow-y-auto scrollbar-glass">
-
-          {/* ── Row 1: Logo + X ── */}
           <div className="flex items-center justify-between flex-shrink-0 mb-4">
             <img
               src={logoImg}
@@ -748,7 +741,6 @@ function MetaPartnerModal({ onClose, isDark }: { onClose: () => void; isDark: bo
             </button>
           </div>
 
-          {/* ── Row 2: Badge pills ── */}
           <div className="flex items-center gap-2.5 flex-wrap flex-shrink-0 mb-4">
             {["Parceiro Oficial Meta", "BSP Certificado Meta"].map((label) => (
               <div
@@ -772,7 +764,6 @@ function MetaPartnerModal({ onClose, isDark }: { onClose: () => void; isDark: bo
             ))}
           </div>
 
-          {/* ── Row 3: Title + subtitle ── */}
           <div className="flex-shrink-0 mb-5">
             <h2 style={{ fontSize: 26, fontWeight: 800, color: titleColor, lineHeight: 1.22, marginBottom: 6 }}>
               Ativação Oficial WhatsApp API
@@ -782,16 +773,8 @@ function MetaPartnerModal({ onClose, isDark }: { onClose: () => void; isDark: bo
             </p>
           </div>
 
-          {/* ── Row 4: 2-column body — flex-1 para preencher o restante ── */}
-          <div
-            className="flex flex-1 gap-0 min-h-0"
-            style={{ borderTop: `1px solid ${divColor}`, paddingTop: 20 }}
-          >
-            {/* LEFT column */}
-            <div
-              className="flex flex-col justify-between flex-shrink-0 pr-8"
-              style={{ width: "46%", borderRight: `1px solid ${divColor}` }}
-            >
+          <div className="flex flex-1 gap-0 min-h-0" style={{ borderTop: `1px solid ${divColor}`, paddingTop: 20 }}>
+            <div className="flex flex-col justify-between flex-shrink-0 pr-8" style={{ width: "46%", borderRight: `1px solid ${divColor}` }}>
               <div className="flex flex-col gap-4">
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: titleColor, lineHeight: 1.35, marginBottom: 6 }}>
@@ -802,7 +785,6 @@ function MetaPartnerModal({ onClose, isDark }: { onClose: () => void; isDark: bo
                   </div>
                 </div>
 
-                {/* Stats pills */}
                 <div className="flex gap-2">
                   {[
                     { Icon: ShieldCheck,    value: "99,9%", label: "uptime"      },
@@ -820,24 +802,14 @@ function MetaPartnerModal({ onClose, isDark }: { onClose: () => void; isDark: bo
                   ))}
                 </div>
 
-                {/* Mensagens ilimitadas */}
-                <div
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                  style={{ background: msgBg, border: msgBorder }}
-                >
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: isDark ? "rgba(124,58,237,0.2)" : "#ede9fe" }}
-                  >
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: msgBg, border: msgBorder }}>
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: isDark ? "rgba(124,58,237,0.2)" : "#ede9fe" }}>
                     <MessageSquare size={13} style={{ color: "#7c3aed" }} />
                   </div>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: titleColor }}>
-                    Mensagens ilimitadas
-                  </span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: titleColor }}>Mensagens ilimitadas</span>
                 </div>
               </div>
 
-              {/* CTA + timing — empurrado para baixo */}
               <div className="flex flex-col gap-3">
                 <button
                   onClick={onClose}
@@ -858,7 +830,6 @@ function MetaPartnerModal({ onClose, isDark }: { onClose: () => void; isDark: bo
               </div>
             </div>
 
-            {/* RIGHT column: checklist — espaçado para ocupar toda a altura */}
             <div className="flex flex-col justify-between flex-1 pl-8">
               <div className="flex flex-col gap-0 flex-1">
                 {checkItems.map((item, i) => (
@@ -874,25 +845,17 @@ function MetaPartnerModal({ onClose, isDark }: { onClose: () => void; isDark: bo
                       paddingBottom: i < checkItems.length - 1 ? 14 : 0,
                     }}
                   >
-                    <div
-                      className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                      style={{ background: "#25D366", boxShadow: "0 2px 8px rgba(37,211,102,0.32)" }}
-                    >
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "#25D366", boxShadow: "0 2px 8px rgba(37,211,102,0.32)" }}>
                       <Check size={9} strokeWidth={3} style={{ color: "white" }} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: titleColor, marginBottom: 3 }}>
-                        {item.title}
-                      </div>
-                      <div style={{ fontSize: 12, color: subColor, lineHeight: 1.58 }}>
-                        {item.desc}
-                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: titleColor, marginBottom: 3 }}>{item.title}</div>
+                      <div style={{ fontSize: 12, color: subColor, lineHeight: 1.58 }}>{item.desc}</div>
                     </div>
                   </motion.div>
                 ))}
               </div>
 
-              {/* Fechar */}
               <div className="flex justify-end pt-4">
                 <button
                   onClick={onClose}
@@ -904,7 +867,6 @@ function MetaPartnerModal({ onClose, isDark }: { onClose: () => void; isDark: bo
               </div>
             </div>
           </div>
-
         </div>
       </motion.div>
     </motion.div>
@@ -945,7 +907,6 @@ function IntegracoesSection({ t, isDark, onShowHelp }: { t: any; isDark: boolean
         </p>
       </div>
 
-      {/* WhatsApp Official API Card */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -956,7 +917,6 @@ function IntegracoesSection({ t, isDark, onShowHelp }: { t: any; isDark: boolean
           background: isDark ? "rgba(37,211,102,0.04)" : "#f8fff9",
         }}
       >
-        {/* Card Header */}
         <div className="flex items-center gap-3 px-6 py-4"
           style={{ borderBottom: isDark ? "1px solid rgba(37,211,102,0.12)" : "1px solid #d1fae5" }}>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{
@@ -993,10 +953,7 @@ function IntegracoesSection({ t, isDark, onShowHelp }: { t: any; isDark: boolean
           </div>
         </div>
 
-        {/* Card Body */}
         <div className="px-6 py-5 flex flex-col gap-4">
-
-          {/* Webhook URL — somente leitura */}
           <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{
             background: isDark ? "rgba(0,0,0,0.2)" : "#f3f4f6",
             border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e5e7eb",
@@ -1025,14 +982,12 @@ function IntegracoesSection({ t, isDark, onShowHelp }: { t: any; isDark: boolean
             </button>
           </div>
 
-          {/* Divider */}
           <div className="flex items-center gap-3">
             <div className="flex-1" style={{ height: 1, background: isDark ? "rgba(255,255,255,0.06)" : "#e5e7eb" }} />
             <span style={{ fontSize: 11, color: t.textMuted }}>Suas credenciais da API</span>
             <div className="flex-1" style={{ height: 1, background: isDark ? "rgba(255,255,255,0.06)" : "#e5e7eb" }} />
           </div>
 
-          {/* Token de Acesso */}
           <div>
             <FieldLabel t={t}>
               <span className="flex items-center gap-1.5">
@@ -1048,7 +1003,6 @@ function IntegracoesSection({ t, isDark, onShowHelp }: { t: any; isDark: boolean
             />
           </div>
 
-          {/* IDs em grid */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <FieldLabel t={t}>
@@ -1090,7 +1044,6 @@ function IntegracoesSection({ t, isDark, onShowHelp }: { t: any; isDark: boolean
             />
           </div>
 
-          {/* Salvar */}
           <div className="flex justify-end pt-1">
             <button
               onClick={handleSave}
@@ -1112,7 +1065,6 @@ function IntegracoesSection({ t, isDark, onShowHelp }: { t: any; isDark: boolean
         </div>
       </motion.div>
 
-      {/* Placeholder para futuras integrações */}
       {["Salesforce CRM", "HubSpot", "Zapier"].map((name, i) => (
         <motion.div
           key={name}
@@ -1156,9 +1108,9 @@ export function Configuracoes() {
   const [activeMenu, setActiveMenu] = useState("WhatsApp");
   const [showHelp, setShowHelp] = useState(false);
 
-  const displayName = user?.name || "Usuário";
+  const displayName = user?.name || user?.email?.split("@")[0] || "Usuário";
   const displayEmail = user?.email || "—";
-  const displayCompany = user?.company?.name || "YouTickets";
+  const displayCompany = "YouAtende";
   const initials = displayName.split(" ").slice(0,2).map((n:string)=>n[0]?.toUpperCase()||"").join("");
 
   const btnPrimary = {
@@ -1220,6 +1172,7 @@ export function Configuracoes() {
           >
             {activeMenu === "WhatsApp"    && <WhatsAppSection t={t} isDark={isDark} />}
             {activeMenu === "Integrações" && <IntegracoesSection t={t} isDark={isDark} onShowHelp={() => setShowHelp(true)} />}
+            {activeMenu === "Equipes"     && <TeamManagement />}
 
             {activeMenu === "Perfil" && (
               <div className="flex flex-col gap-5">
@@ -1233,7 +1186,7 @@ export function Configuracoes() {
                   }}>{initials}</div>
                   <div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: t.textPrimary }}>{displayName}</div>
-                    <div style={{ fontSize: 13, color: t.textSecondary }}>{user?.profile === "admin" ? "Administrador" : "Atendente"} · {displayCompany}</div>
+                    <div style={{ fontSize: 13, color: t.textSecondary }}>{user?.role === "admin" ? "Administrador" : "Atendente"} · {displayCompany}</div>
                     <button className="mt-2 px-4 py-1.5 rounded-full transition-all hover:scale-105"
                       style={{ background: t.tagBg, border: `1px solid ${t.tagBorder}`, fontSize: 12, color: t.tagColor }}>
                       Alterar foto
@@ -1244,7 +1197,7 @@ export function Configuracoes() {
                   { label: "Nome completo", value: displayName,   type: "text"  },
                   { label: "E-mail",        value: displayEmail,  type: "email" },
                   { label: "Telefone",      value: "+55 (11) 99999-0000", type: "tel" },
-                  { label: "Cargo",         value: user?.profile==="admin"?"Administrador":"Atendente", type: "text" },
+                  { label: "Cargo",         value: user?.role==="admin"?"Administrador":"Atendente", type: "text" },
                 ].map(field => (
                   <div key={field.label}>
                     <label className="block mb-1.5" style={{ fontSize: 12, color: t.textMuted, fontWeight: 500 }}>
@@ -1284,7 +1237,7 @@ export function Configuracoes() {
               </div>
             )}
 
-            {!["Perfil","Notificações","WhatsApp","Integrações"].includes(activeMenu) && (
+            {!["Perfil","Notificações","WhatsApp","Integrações","Equipes"].includes(activeMenu) && (
               <div className="flex flex-col items-center justify-center py-20" style={{ color: t.textMuted }}>
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{
                   background: "linear-gradient(135deg, rgba(236,72,153,0.12), rgba(124,58,237,0.12))",
@@ -1304,7 +1257,6 @@ export function Configuracoes() {
       </div>
     </div>
 
-    {/* MetaPartnerModal — rendered at root level; uses fixed positioning */}
     <AnimatePresence>
       {showHelp && (
         <MetaPartnerModal onClose={() => setShowHelp(false)} isDark={isDark} />
@@ -1314,4 +1266,3 @@ export function Configuracoes() {
   </>
   );
 }
-

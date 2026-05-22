@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const API_URL = 'https://vigilant-yodel-v657pwg7qgjpc6wjr-3000.app.github.dev';
+
 const api = axios.create({
-  baseURL: '/',
+  baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -22,14 +24,14 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
-          const { data } = await axios.post('/auth/refresh_token', { refreshToken });
+          const { data } = await axios.post(`${API_URL}/auth/refresh_token`, { refreshToken });
           localStorage.setItem('token', data.token);
           localStorage.setItem('refreshToken', data.refreshToken);
           api.defaults.headers.Authorization = `Bearer ${data.token}`;
           originalRequest.headers.Authorization = `Bearer ${data.token}`;
           return api(originalRequest);
         } catch {
-          clearTokens();
+          localStorage.clear();
           window.location.href = '/login';
         }
       }
