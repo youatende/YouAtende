@@ -13,6 +13,7 @@ import { useAuth } from "../../context/AuthContext";
 import {
   listConnections, createConnection, updateConnection,
   deleteConnection, restartConnection,
+  WhatsAppSession
 } from "../../services/whatsappService";
 import { TeamManagement } from "./TeamManagement";
 import logoImg from "../../../assets/7dee4d2422fa054a783195ac473a80d49248e146.png";
